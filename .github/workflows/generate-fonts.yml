@@ -35,7 +35,7 @@ jobs:
       - run: echo version is ${{ env.LATEST_VERSION }}
 
       - name: Download latest version of Sarasa Gothic from GitHub release page
-        uses: robinraju/release-downloader@v1.9
+        uses: robinraju/release-downloader@v1
         with:
           repository: 'be5invis/Sarasa-Gothic'
           tag: ${{ env.LATEST_TAG }}
@@ -49,7 +49,7 @@ jobs:
           path: '*.7z'
 
   patch1:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: prepare
     strategy:
       matrix:
@@ -70,7 +70,7 @@ jobs:
           ]
     env:
       FILENAME: 'sarasa-${{ matrix.styles }}-${{ matrix.orthographies }}-${{ matrix.variants }}'
-      NERD_FONTS_VERSION: v3.1.1
+      NERD_FONTS_VERSION: v3.4.0
     steps:
       - uses: actions/checkout@v4
 
@@ -86,7 +86,7 @@ jobs:
           echo Try appimage with path
           fontforge --version
       - name: Get Font Patcher
-        uses: robinraju/release-downloader@v1.9
+        uses: robinraju/release-downloader@v1
         with:
           repository: 'ryanoasis/nerd-fonts'
           tag: ${{ env.NERD_FONTS_VERSION }}
@@ -133,8 +133,8 @@ jobs:
           mv "${original_filename}.ttf" "${FILENAME}.ttf"
       - run: ls -l
       - run: mkdir -p "${PWD}/outputs"
-      - name: patch font
-        run: fontforge -script "${PWD}/font-patcher" --adjust-line-height --careful --complete --no-progressbars --quiet --removeligatures "${PWD}/${FILENAME}.ttf" --outputdir "${PWD}/outputs"
+      - name: patch font without Material Design Icons to avoid reaching the 65535 glyphs limit
+        run: fontforge -script "${PWD}/font-patcher" --adjust-line-height --careful --codicons --fontawesome --fontawesomeext --fontlogos --octicons --powersymbols --pomicons --powerline --powerlineextra --weather --no-progressbars --quiet --removeligatures "${PWD}/${FILENAME}.ttf" --outputdir "${PWD}/outputs"
       - run: ls -l
       - run: ls -l "${PWD}/outputs"
       - name: rename patched font files
@@ -145,6 +145,7 @@ jobs:
       - name: install fonttools
         run: pip install fonttools
       - name: correcting xAvgCharWidth to fix alignment issue
+        if: ${{ matrix.styles != 'gothic' && matrix.styles != 'ui' }}
         run: |
           ttx -t "OS/2" "${FILENAME}.ttf"
           ttx -t "OS/2" "${FILENAME}-nerd-font.ttf"
@@ -158,6 +159,7 @@ jobs:
           mv "${FILENAME}-nerd-font.ttf" "${FILENAME}-nerd-font.original.ttf"
           ttx -o "${FILENAME}-nerd-font.ttf" -m "${FILENAME}-nerd-font.original.ttf" "${FILENAME}-nerd-font.ttx"
       - name: build hdmx table to fix alignment issue
+        if: ${{ matrix.styles != 'gothic' && matrix.styles != 'ui' }}
         run: python build-hdmx-for-sarasa.py "${FILENAME}-nerd-font.ttf"
       - name: patch TTF font family name
         run: python patch-ttf-name-for-sarasa-nerd.py "${FILENAME}-nerd-font.ttf" ${{ matrix.styles }} ${{ matrix.orthographies }} ${{ matrix.variants }} ${{ env.NERD_FONTS_VERSION }} ${{ github.ref_name }}
@@ -169,7 +171,7 @@ jobs:
 
   patch2:
     needs: patch1
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         styles: ['term', 'term-slab', 'gothic', 'ui']
@@ -189,7 +191,7 @@ jobs:
           ]
     env:
       FILENAME: 'sarasa-${{ matrix.styles }}-${{ matrix.orthographies }}-${{ matrix.variants }}'
-      NERD_FONTS_VERSION: v3.1.1
+      NERD_FONTS_VERSION: v3.4.0
     steps:
       - uses: actions/checkout@v4
 
@@ -205,7 +207,7 @@ jobs:
           echo Try appimage with path
           fontforge --version
       - name: Get Font Patcher
-        uses: robinraju/release-downloader@v1.9
+        uses: robinraju/release-downloader@v1
         with:
           repository: 'ryanoasis/nerd-fonts'
           tag: ${{ env.NERD_FONTS_VERSION }}
@@ -252,8 +254,8 @@ jobs:
           mv "${original_filename}.ttf" "${FILENAME}.ttf"
       - run: ls -l
       - run: mkdir -p "${PWD}/outputs"
-      - name: patch font
-        run: fontforge -script "${PWD}/font-patcher" --adjust-line-height --careful --complete --no-progressbars --quiet --removeligatures "${PWD}/${FILENAME}.ttf" --outputdir "${PWD}/outputs"
+      - name: patch font without Material Design Icons to avoid reaching the 65535 glyphs limit
+        run: fontforge -script "${PWD}/font-patcher" --adjust-line-height --careful --codicons --fontawesome --fontawesomeext --fontlogos --octicons --powersymbols --pomicons --powerline --powerlineextra --weather --no-progressbars --quiet --removeligatures "${PWD}/${FILENAME}.ttf" --outputdir "${PWD}/outputs"
       - run: ls -l
       - run: ls -l "${PWD}/outputs"
       - name: rename patched font files
@@ -264,6 +266,7 @@ jobs:
       - name: install fonttools
         run: pip install fonttools
       - name: correcting xAvgCharWidth to fix alignment issue
+        if: ${{ matrix.styles != 'gothic' && matrix.styles != 'ui' }}
         run: |
           ttx -t "OS/2" "${FILENAME}.ttf"
           ttx -t "OS/2" "${FILENAME}-nerd-font.ttf"
@@ -277,6 +280,7 @@ jobs:
           mv "${FILENAME}-nerd-font.ttf" "${FILENAME}-nerd-font.original.ttf"
           ttx -o "${FILENAME}-nerd-font.ttf" -m "${FILENAME}-nerd-font.original.ttf" "${FILENAME}-nerd-font.ttx"
       - name: build hdmx table to fix alignment issue
+        if: ${{ matrix.styles != 'gothic' && matrix.styles != 'ui' }}
         run: python build-hdmx-for-sarasa.py "${FILENAME}-nerd-font.ttf"
       - name: patch TTF font family name
         run: python patch-ttf-name-for-sarasa-nerd.py "${FILENAME}-nerd-font.ttf" ${{ matrix.styles }} ${{ matrix.orthographies }} ${{ matrix.variants }} ${{ env.NERD_FONTS_VERSION }} ${{ github.ref_name }}
@@ -288,7 +292,7 @@ jobs:
 
   zip:
     needs: patch2
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         styles: ['fixed', 'fixed-slab', 'mono', 'mono-slab', 'term', 'term-slab', 'gothic', 'ui']
@@ -340,7 +344,7 @@ jobs:
   release:
     needs: zip
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - run: ls -l
 
